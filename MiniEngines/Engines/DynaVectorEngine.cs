@@ -29,7 +29,6 @@ namespace MiniEngines.Engines
             get { return EngineSpec.Get<int>(nameof(BleedBackwards)); }
             set { EngineSpec.Set(nameof(BleedBackwards), value); }
         }
-
         public static string LimiterListHash
         {
             get { return EngineSpec.Get<string>(nameof(LimiterListHash)); }
@@ -72,14 +71,17 @@ namespace MiniEngines.Engines
 
         public static EngineMethod Method { get; set; }
 
+
         public static BlastUnit BleedFloat(MemoryInterface mi, long address, int precision, string domain)
         {
             if ((address - (BleedBackwards * precision) < 0) || (address + (BleedForwards * precision) >= mi.Size))
             {
                 return null;
             }
+
             byte[][] prev = GatherFloats(mi, address, precision, BleedBackwards, false);
             byte[][] next = GatherFloats(mi, address, precision, BleedForwards, true);
+
             bool usenext = rand.Next(2) == 0;
             if (next.Length == 0 && usenext) usenext = false;
             if (prev.Length == 0 && !usenext) usenext = true;
@@ -108,7 +110,7 @@ namespace MiniEngines.Engines
             for (int i = 0; i < bleedAmt; i++)
             {
                 address += forwards ? precision : -precision;
-                var bytes = Filtering.LimiterPeekAndGetBytes(address, address + precision, DynaVectorEngine.LimiterListHash, mi);
+                var bytes = Filtering.LimiterPeekAndGetBytes(address, address + precision, LimiterListHash, mi);
                 if (bytes == null)
                     continue;
                 result.Add(bytes);
@@ -123,18 +125,25 @@ namespace MiniEngines.Engines
                 return null;
             }
             List<(byte[], long)> matchBytes = new List<(byte[], long)>();
-            address = address - (address % (precision * vecLength)) + RtcCore.Alignment;
             for (int i = 0; i < vecLength; i++)
             {
-                var bytes = Filtering.LimiterPeekAndGetBytes(address + (precision * i), address + (precision * i) + precision, DynaVectorEngine.LimiterListHash, mi);
+                var bytes = Filtering.LimiterPeekAndGetBytes(address + (precision * i), address + (precision * i) + precision, LimiterListHash, mi);
                 if (bytes != null)
+                {
                     matchBytes.Add((bytes, address + (precision * i)));
+                }
+                else
+                {
+                    return null;
+                }
             }
+
             if (matchBytes.Count == vecLength)
             {
-                return new BlastUnit(Filtering.GetRandomConstant(DynaVectorEngine.ValueListHash, precision, matchBytes[rand.Next(vecLength)].Item1), domain, matchBytes[rand.Next(vecLength)].Item2, precision,
+                return new BlastUnit(Filtering.GetRandomConstant(ValueListHash, precision, matchBytes[rand.Next(vecLength)].Item1), domain, matchBytes[rand.Next(vecLength)].Item2, precision,
                     mi.BigEndian, 0, 1, null, true, false, true);
             }
+
             return null;
         }
 
@@ -150,7 +159,7 @@ namespace MiniEngines.Engines
             //Behavior: Will use the selected limiter list's precision by default
             //And if the precision was unlocked, use what was set in the precision box
 
-            if (Filtering.Hash2LimiterDico.TryGetValue(DynaVectorEngine.LimiterListHash, out IListFilter list))
+            if (Filtering.Hash2LimiterDico.TryGetValue(LimiterListHash, out IListFilter list))
             {
                 precision = list.GetPrecision();
             }
@@ -184,7 +193,7 @@ namespace MiniEngines.Engines
                     return VecCorrupt(mi, safeAddress, precision, 4, domain);
             }
             //Enforce the safeaddress at generation
-            var matchBytes = Filtering.LimiterPeekAndGetBytes(safeAddress, safeAddress + precision, DynaVectorEngine.LimiterListHash, mi);
+            var matchBytes = Filtering.LimiterPeekAndGetBytes(safeAddress, safeAddress + precision, LimiterListHash, mi);
             if (matchBytes != null)
             {
                 switch (Method)
