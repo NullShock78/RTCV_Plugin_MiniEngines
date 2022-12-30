@@ -1,4 +1,5 @@
 ﻿using MiniEngines.Engines;
+using MiniEngines.Engines.LoopingVector;
 using MiniEngines.UI;
 using RTCV.Common;
 using RTCV.NetCore;
@@ -47,6 +48,18 @@ namespace MiniEngines
                 form.TopLevel = false;
 
                 S.GET<CorruptionEngineForm>().RegisterPluginEngine(new DynaVectorEngine(form));
+
+                var bitManipForm = new BitManipSettings();
+                S.SET(bitManipForm);
+                bitManipForm.TopLevel = false;
+
+                S.GET<CorruptionEngineForm>().RegisterPluginEngine(new Engines.BitManip.BitManipEngine(bitManipForm));
+
+                var loopingVectorForm = new LoopingVectorSettings();
+                S.SET(loopingVectorForm);
+                loopingVectorForm.TopLevel = false;
+
+                S.GET<CorruptionEngineForm>().RegisterPluginEngine(new LoopingVectorEngine(loopingVectorForm));
 
             }
             CurrentSide = side;
